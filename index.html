@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Habit Health Check</title>
+    <!-- Tailwind CSS via jsdelivr (v2.2.19) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom ledger-inspired background */
+      body {
+        background: linear-gradient(to bottom, #f2f4f7, #ffffff);
+      }
+      .ledger {
+        background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+        background-size: 100% 40px;
+      }
+      .card {
+        background-color: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      }
+      .button-primary {
+        background: linear-gradient(to right, #38bdf8, #0ea5e9);
+        color: #ffffff;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        transition: background 0.3s ease;
+      }
+      .button-primary:hover {
+        background: linear-gradient(to right, #0ea5e9, #38bdf8);
+      }
+      .button-secondary {
+        background: #f3f4f6;
+        color: #374151;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        transition: background 0.3s ease;
+      }
+      .button-secondary:hover {
+        background: #e5e7eb;
+      }
+      .progress-outer {
+        background-color: #e5e7eb;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        height: 0.5rem;
+      }
+      .progress-inner {
+        background: linear-gradient(to right, #0ea5e9, #38bdf8);
+        height: 100%;
+        width: 0;
+        transition: width 0.3s ease;
+      }
+      .table-zebra tr:nth-child(even) {
+        background-color: #f9fafb;
+      }
+
+      /* Dark mode variables */
+      body {
+        color: var(--text, #374151);
+      }
+      .dark {
+        --bg: #111827;
+        --card-bg: #1f2937;
+        --text: #f9fafb;
+      }
+      body {
+        background: var(--bg, #f2f4f7);
+      }
+      .card {
+        background-color: var(--card-bg, #ffffff);
+        color: var(--text, #374151);
+      }
+      .dark .button-primary {
+        background: linear-gradient(to right, #6366f1, #4f46e5);
+      }
+      .dark .button-secondary {
+        background: #374151;
+        color: #e5e7eb;
+      }
+
+      /* Confetti animation */
+      @keyframes fall {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+      }
+    </style>
+  </head>
+  <body class="font-sans text-gray-800">
+    <div id="app" class="max-w-3xl mx-auto p-4"></div>
+    <!-- Embedded configuration.  The JSON is duplicated here so the app works when opened
+         directly from the filesystem without a web server.  If you update config.json,
+         remember to update this block as well. -->
+    <script id="config-data" type="application/json">
+{
+  "markers": [
+    {
+      "id": "alcohol",
+      "label": "Alcohol units per week",
+      "unit": "units/week",
+      "baseline": 10,
+      "bands": { "mild": 14, "moderate": 21, "high": 28 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 1,
+      "description": "Drinking more than 14 units weekly increases health risks"
+    },
+    {
+      "id": "nicotine",
+      "label": "Nicotine milligrams per day",
+      "unit": "mg/day",
+      "baseline": 0,
+      "bands": { "mild": 1, "moderate": 20, "high": 40 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 2,
+      "description": "No tobacco product is safe and nicotine is highly addictive"
+    },
+    {
+      "id": "caffeine",
+      "label": "Caffeine milligrams per day",
+      "unit": "mg/day",
+      "baseline": 200,
+      "bands": { "mild": 400, "moderate": 600, "high": 800 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 3,
+      "description": "Up to 400 mg caffeine daily is generally safe for most adults"
+    },
+    {
+      "id": "sleep",
+      "label": "Sleep hours per night",
+      "unit": "hours/night",
+      "baseline": 7.5,
+      "bands": { "mild": 7, "moderate": 6, "high": 5 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 4,
+      "description": "Adults typically need about 7–9 hours of sleep each night"
+    },
+    {
+      "id": "strength_training",
+      "label": "Strength training minutes per day",
+      "unit": "minutes/day",
+      "baseline": 20,
+      "bands": { "mild": 20, "moderate": 10, "high": 5 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 5,
+      "description": "Guidelines recommend muscle‑strengthening activities on at least two days per week; around 20 minutes daily is a good target"
+    },
+    {
+      "id": "cardio",
+      "label": "Zone‑2 cardio minutes per day",
+      "unit": "minutes/day",
+      "baseline": 22,
+      "bands": { "mild": 22, "moderate": 11, "high": 5 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 5,
+      "description": "Aim for at least 150 minutes of moderate‑intensity activity per week (about 22 minutes daily)"
+    },
+    {
+      "id": "social_media",
+      "label": "Social‑media minutes per day",
+      "unit": "minutes/day",
+      "baseline": 120,
+      "bands": { "mild": 120, "moderate": 180, "high": 240 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 6,
+      "description": "Using social media more than about three hours daily doubles mental health risks"
+    },
+    {
+      "id": "porn",
+      "label": "Porn sessions per week",
+      "unit": "sessions/week",
+      "baseline": 1,
+      "bands": { "mild": 2, "moderate": 4, "high": 7 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 7,
+      "description": "Frequent pornography consumption predicts higher anxiety, depression and stress"
+    },
+    {
+      "id": "fast_food",
+      "label": "Fast‑food meals per week",
+      "unit": "meals/week",
+      "baseline": 1,
+      "bands": { "mild": 2, "moderate": 3, "high": 5 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 8,
+      "description": "Fast‑food meals are often high in calories, fat, sugar and salt"
+    },
+    {
+      "id": "tooth_brushing",
+      "label": "Tooth‑brushing times per day",
+      "unit": "times/day",
+      "baseline": 2,
+      "bands": { "mild": 2, "moderate": 1, "high": 0 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 9,
+      "description": "Brush twice daily with fluoride toothpaste for healthy teeth and gums"
+    }
+  ],
+  "regions": {
+    "uk": {
+      "label": "United Kingdom",
+      "description": "UK baseline for adults aged 25–35",
+      "baselines": {
+        "alcohol": 12,
+        "nicotine": 5,
+        "caffeine": 210,
+        "sleep": 7,
+        "strength_training": 10,
+        "cardio": 15,
+        "social_media": 150,
+        "porn": 1,
+        "fast_food": 2,
+        "tooth_brushing": 2
+      }
+    }
+  }
+}
+    </script>
+    <!-- Chart.js (radar & bar charts) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+    <!-- html2canvas for PDF export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- jsPDF UMD -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- Main application script -->
+    <script src="./script.js"></script>
+  </body>
+</html>
