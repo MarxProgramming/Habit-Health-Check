@@ -28,20 +28,23 @@ const genderOptions = ['female', 'male', 'other'];
 
 // Baseline adjustments by age group.  Each array corresponds to
 // ageOptions: 18-24, 25-34, 35-44, 45-54, 55+
+// Updated baseline values by age group based on recent UK/international data.  Each array
+// corresponds to ageOptions: ['18-24','25-34','35-44','45-54','55+'] and reflects
+// typical averages among those age cohorts.
 const ageBaselineMap = {
-  alcohol: [14, 12, 10, 9, 8],
-  nicotine: [8, 5, 3, 2, 1],
-  caffeine: [180, 210, 200, 180, 160],
-  sleep: [7, 7, 7, 7, 7],
-  strength_training: [12, 10, 8, 6, 5],
-  cardio: [20, 15, 10, 8, 6],
-  social_media: [180, 150, 120, 90, 60],
-  porn: [2, 1, 0.5, 0.3, 0.1],
-  fast_food: [3, 2, 1, 1, 0.5],
-  tooth_brushing: [2, 2, 2, 2, 2],
-  sugary_drinks: [4, 3, 2, 2, 1],
-  social_connections: [3, 3, 2, 2, 2],
-  fruit_veg: [3, 4, 4, 4, 4]
+  alcohol: [9, 10.5, 11.5, 12.5, 12],
+  nicotine: [9, 11, 12, 12, 9],
+  caffeine: [125, 125, 125, 130, 135],
+  sleep: [7.8, 7.6, 7.5, 7.5, 7.6],
+  strength_training: [1.5, 1.25, 1.0, 0.75, 0.5],
+  cardio: [175, 165, 145, 130, 100],
+  social_media: [150, 125, 100, 75, 45],
+  porn: [0.8, 1.5, 1.0, 0.6, 0.2],
+  fast_food: [1.7, 1.5, 1.2, 0.8, 0.5],
+  tooth_brushing: [1.7, 1.8, 1.9, 1.9, 2.0],
+  sugary_drinks: [5, 3.5, 2.5, 2, 2],
+  social_connections: [3.0, 2.5, 2.0, 1.5, 2.0],
+  fruit_veg: [4, 4, 4, 4, 4]
 };
 
 // Gender adjustments added to baseline values
@@ -49,6 +52,42 @@ const genderAdjustments = {
   male: { alcohol: 2, nicotine: 2, caffeine: 10, sleep: -0.5, strength_training: 2, cardio: 0, social_media: -20, porn: 1, fast_food: 0.5, sugary_drinks: 1, social_connections: -0.5, fruit_veg: -0.5 },
   female: { alcohol: -2, nicotine: -2, caffeine: -10, sleep: 0.5, strength_training: -2, cardio: 0, social_media: 20, porn: -1, fast_food: -0.5, sugary_drinks: -1, social_connections: 0.5, fruit_veg: 0.5 },
   other: {}
+};
+
+// Emoji icons keyed by marker id.  Each icon intuitively represents a
+// lifestyle habit and is used in question titles to add personality.
+const markerIcons = {
+  alcohol: '🍺',
+  nicotine: '🚬',
+  caffeine: '☕',
+  sleep: '😴',
+  strength_training: '🏋️',
+  cardio: '🚴',
+  social_media: '📱',
+  porn: '🔞',
+  fast_food: '🍔',
+  tooth_brushing: '🪥',
+  sugary_drinks: '🥤',
+  social_connections: '🤝',
+  fruit_veg: '🍎'
+};
+
+// Example strings providing intuitive reference values for each marker.  These
+// describe roughly what the recommended baseline equates to in familiar terms.
+const markerExamples = {
+  alcohol: 'For reference, 10 units ≈ five pints of beer or five glasses of wine per week',
+  nicotine: 'One cigarette delivers about one mg of nicotine',
+  caffeine: '125 mg of caffeine is roughly one strong coffee or two cups of tea',
+  sleep: '7.5 hours means going to bed at 11 pm and waking at 6:30 am',
+  strength_training: '1.5 minutes per day ≈ two brief strength workouts per week',
+  cardio: '165 minutes per week ≈ five 33-minute walks or three 55-minute sessions',
+  social_media: '125 minutes per day is just over two hours of screen time',
+  porn: '1.5 sessions per week means once or twice in a week',
+  fast_food: '1.5 meals per week is about one or two takeaway meals',
+  tooth_brushing: '1.8 times per day implies brushing twice most days',
+  sugary_drinks: '3.5 drinks per week might be two cans of soda and a sugary coffee',
+  social_connections: '2.5 meetings per week could be two hangouts plus a call',
+  fruit_veg: '4 portions a day could be two pieces of fruit and two servings of veg'
 };
 
 function getBaselineFor(markerId) {
@@ -292,10 +331,11 @@ function renderLaunch() {
 // Render a single survey question based on the current marker
 function renderQuestion() {
   const marker = markers[currentIndex];
+  // Clear existing content
   app.innerHTML = '';
+  // Create container with card and fade-in animation
   const container = document.createElement('div');
-  container.className = 'ledger card p-6 md:p-8 space-y-4 transition-transform duration-300';
-
+  container.className = 'ledger card p-6 md:p-8 space-y-4 transition-transform duration-300 fade-in';
   // Progress bar
   const progressOuter = document.createElement('div');
   progressOuter.className = 'progress-outer';
@@ -305,59 +345,93 @@ function renderQuestion() {
   progressInner.style.width = `${percent}%`;
   progressOuter.appendChild(progressInner);
   container.appendChild(progressOuter);
-
-  // Step indicator
+  // Step indicator with colour coding and clickable dots
   const stepContainer = document.createElement('div');
   stepContainer.className = 'flex justify-center space-x-1 mt-2';
   markers.forEach((m, idx) => {
     const dot = document.createElement('div');
-    dot.className = 'rounded-full';
-    dot.style.width = '10px';
-    dot.style.height = '10px';
-    dot.style.backgroundColor = idx === currentIndex ? '#0ea5e9' : '#d1d5db';
+    dot.className = 'rounded-full transition-transform';
+    const completed = idx < currentIndex;
+    const current = idx === currentIndex;
+    dot.style.backgroundColor = completed ? '#34d399' : (current ? '#60a5fa' : '#d1d5db');
+    dot.style.width = current ? '14px' : '10px';
+    dot.style.height = current ? '14px' : '10px';
+    dot.style.transform = current ? 'scale(1.1)' : 'scale(1)';
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('click', () => {
+      currentIndex = idx;
+      renderQuestion();
+    });
     stepContainer.appendChild(dot);
   });
   container.appendChild(stepContainer);
-
-  // Question title
+  // Question title with icon
   const title = document.createElement('h2');
   title.className = 'text-xl font-mono font-semibold text-gray-800 mt-4';
-  title.textContent = `${currentIndex + 1}. ${marker.label}`;
+  const icon = markerIcons[marker.id] || '';
+  title.textContent = `${currentIndex + 1}. ${icon} ${marker.label}`;
   container.appendChild(title);
-
+  // Description
+  if (marker.description) {
+    const desc = document.createElement('p');
+    desc.className = 'text-sm text-gray-600 italic';
+    desc.textContent = marker.description;
+    container.appendChild(desc);
+  }
+  // Recommended baseline
+  const baselineVal = getBaselineFor(marker.id);
+  const baselineEl = document.createElement('p');
+  baselineEl.className = 'text-xs text-gray-500';
+  baselineEl.textContent = `Recommended: ${baselineVal} ${marker.unit}`;
+  container.appendChild(baselineEl);
+  // Example line
+  const example = markerExamples[marker.id];
+  if (example) {
+    const ex = document.createElement('p');
+    ex.className = 'text-xs text-gray-500 italic';
+    ex.textContent = example;
+    container.appendChild(ex);
+  }
   // Choice buttons
   const choicesDiv = document.createElement('div');
   choicesDiv.className = 'mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2';
   const choices = choiceSets[marker.id] || [];
-  let selectedValue = answers[marker.id] ?? null;
   choices.forEach(({ label, value }) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'w-full text-center border border-gray-300 rounded px-3 py-2 text-sm hover:bg-gray-100 transition-colors';
+    btn.className = 'w-full text-center border border-gray-300 rounded px-3 py-2 text-sm transition-colors';
     btn.textContent = label;
-    // highlight if selected
+    // Apply selected styling
     function updateSelection() {
       if (answers[marker.id] === value) {
-        btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+        btn.classList.add('text-white');
+        btn.style.background = 'linear-gradient(to right, #34d399, #60a5fa)';
+        btn.style.color = '#ffffff';
+        btn.style.borderColor = '#34d399';
       } else {
-        btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-        btn.classList.add('bg-white');
+        btn.classList.remove('text-white');
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
       }
     }
     updateSelection();
     btn.addEventListener('click', () => {
       answers[marker.id] = value;
-      // Update all buttons selection state
       Array.from(choicesDiv.children).forEach((child) => {
-        child.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-        child.classList.add('bg-white');
+        child.classList.remove('text-white');
+        child.style.background = '';
+        child.style.color = '';
+        child.style.borderColor = '';
       });
-      btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+      btn.classList.add('text-white');
+      btn.style.background = 'linear-gradient(to right, #34d399, #60a5fa)';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#34d399';
     });
     choicesDiv.appendChild(btn);
   });
   container.appendChild(choicesDiv);
-
   // Custom numeric input
   const customDiv = document.createElement('div');
   customDiv.className = 'mt-4';
@@ -369,7 +443,6 @@ function renderQuestion() {
   customInput.step = 0.1;
   customInput.min = 0;
   customInput.className = 'w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-800';
-  // Prepopulate with existing answer if not from choice
   const currentValue = answers[marker.id];
   if (currentValue != null && !choices.some(c => c.value === currentValue)) {
     customInput.value = currentValue;
@@ -378,37 +451,36 @@ function renderQuestion() {
     const v = parseFloat(customInput.value);
     if (!isNaN(v)) {
       answers[marker.id] = v;
-      // Unhighlight all choice buttons when custom value used
       Array.from(choicesDiv.children).forEach((child) => {
-        child.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-        child.classList.add('bg-white');
+        child.classList.remove('text-white');
+        child.style.background = '';
+        child.style.color = '';
+        child.style.borderColor = '';
       });
     }
   });
   customDiv.appendChild(customLabel);
   customDiv.appendChild(customInput);
   container.appendChild(customDiv);
-
   // Navigation buttons
   const nav = document.createElement('div');
   nav.className = 'flex justify-between pt-6';
   if (currentIndex > 0) {
-    const back = document.createElement('button');
-    back.className = 'button-secondary';
-    back.textContent = 'Back';
-    back.addEventListener('click', () => {
+    const backBtn = document.createElement('button');
+    backBtn.className = 'button-secondary';
+    backBtn.textContent = 'Back';
+    backBtn.addEventListener('click', () => {
       currentIndex--;
       renderQuestion();
     });
-    nav.appendChild(back);
+    nav.appendChild(backBtn);
   } else {
     nav.appendChild(document.createElement('div'));
   }
-  const next = document.createElement('button');
-  next.className = 'button-primary';
-  next.textContent = currentIndex < markers.length - 1 ? 'Next' : 'Finish';
-  next.addEventListener('click', () => {
-    // If no choice selected, default to first option value
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'button-primary';
+  nextBtn.textContent = currentIndex < markers.length - 1 ? 'Next' : 'Finish';
+  nextBtn.addEventListener('click', () => {
     if (answers[marker.id] == null && choices.length > 0) {
       answers[marker.id] = choices[0].value;
     }
@@ -419,7 +491,7 @@ function renderQuestion() {
       renderResults();
     }
   });
-  nav.appendChild(next);
+  nav.appendChild(nextBtn);
   container.appendChild(nav);
   app.appendChild(container);
 }
@@ -596,7 +668,8 @@ function renderResults() {
   app.innerHTML = '';
   const container = document.createElement('div');
   container.id = 'results-container';
-  container.className = 'ledger card p-6 md:p-8 space-y-6';
+  // Apply card styling and fade-in animation for a smoother reveal
+  container.className = 'ledger card p-6 md:p-8 space-y-6 fade-in';
 
   // Headline score with colored circle
   const colorName = scoreColor(score);
@@ -877,6 +950,35 @@ function renderResults() {
   setTimeout(() => {
     drawMiniCharts(chartData);
   }, 0);
+  // Create and append a summary section with bar and radar charts
+  const summarySection = document.createElement('div');
+  summarySection.className = 'mt-8 space-y-6';
+  const summaryTitle = document.createElement('h3');
+  summaryTitle.className = 'text-xl font-mono font-semibold';
+  summaryTitle.textContent = 'Group vs overall averages';
+  summarySection.appendChild(summaryTitle);
+  const barCanvas = document.createElement('canvas');
+  barCanvas.id = 'summaryChart';
+  barCanvas.height = 320;
+  summarySection.appendChild(barCanvas);
+  const radarTitle = document.createElement('h3');
+  radarTitle.className = 'text-xl font-mono font-semibold mt-4';
+  radarTitle.textContent = 'Your pattern vs averages';
+  summarySection.appendChild(radarTitle);
+  const radarCanvas = document.createElement('canvas');
+  radarCanvas.id = 'radarChart';
+  radarCanvas.height = 320;
+  summarySection.appendChild(radarCanvas);
+  container.appendChild(summarySection);
+  // Draw the summary charts after insertion into DOM
+  setTimeout(() => {
+    try {
+      drawSummaryBarChart(chartData);
+      drawRadarChart(chartData);
+    } catch (err) {
+      console.error('Error drawing summary charts', err);
+    }
+  }, 0);
 }
 
 // Draw Chart.js radar or bar chart depending on viewport width
@@ -969,14 +1071,44 @@ function drawMiniCharts({ labels, userValues, groupAvgValues, overallAvgValues }
     canvas.id = 'mini_' + marker.id;
     wrapper.appendChild(canvas);
     container.appendChild(wrapper);
+    // Determine colour for the user's bar based on how their value compares to the bands.
+    // Good values are green, mild deviations yellow, moderate deviations orange and high values red.
+    const val = userValues[idx] ?? 0;
+    const bands = marker.bands;
+    let youBg = 'rgba(16, 185, 129, 0.6)';
+    let youBorder = 'rgba(16, 185, 129, 1)';
+    if (!marker.invert) {
+      if (val > bands.high) {
+        youBg = 'rgba(239, 68, 68, 0.6)';
+        youBorder = 'rgba(239, 68, 68, 1)';
+      } else if (val > bands.moderate) {
+        youBg = 'rgba(249, 115, 22, 0.6)';
+        youBorder = 'rgba(249, 115, 22, 1)';
+      } else if (val > bands.mild) {
+        youBg = 'rgba(234, 179, 8, 0.6)';
+        youBorder = 'rgba(234, 179, 8, 1)';
+      }
+    } else {
+      // Inverted markers: lower values are worse
+      if (val < bands.high) {
+        youBg = 'rgba(239, 68, 68, 0.6)';
+        youBorder = 'rgba(239, 68, 68, 1)';
+      } else if (val < bands.moderate) {
+        youBg = 'rgba(249, 115, 22, 0.6)';
+        youBorder = 'rgba(249, 115, 22, 1)';
+      } else if (val < bands.mild) {
+        youBg = 'rgba(234, 179, 8, 0.6)';
+        youBorder = 'rgba(234, 179, 8, 1)';
+      }
+    }
     const data = {
       labels: ['You', 'Your group', 'Overall avg'],
       datasets: [
         {
           label: marker.label,
           data: [userValues[idx], groupAvgValues[idx], overallAvgValues[idx]],
-          backgroundColor: ['rgba(16, 185, 129, 0.6)', 'rgba(96, 165, 250, 0.6)', 'rgba(156, 163, 175, 0.6)'],
-          borderColor: ['rgba(16, 185, 129, 1)', 'rgba(96, 165, 250, 1)', 'rgba(156, 163, 175, 1)'],
+          backgroundColor: [youBg, 'rgba(96, 165, 250, 0.6)', 'rgba(156, 163, 175, 0.6)'],
+          borderColor: [youBorder, 'rgba(96, 165, 250, 1)', 'rgba(156, 163, 175, 1)'],
           borderWidth: 1,
           borderRadius: 4
         }
@@ -998,6 +1130,106 @@ function drawMiniCharts({ labels, userValues, groupAvgValues, overallAvgValues }
     const miniChart = new Chart(canvas, { type: 'bar', data, options });
     miniCharts.push(miniChart);
   });
+}
+
+// Draw a bar chart comparing group and overall averages across all markers
+function drawSummaryBarChart({ labels, groupAvgValues, overallAvgValues }) {
+  const canvas = document.getElementById('summaryChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (ctx && ctx._chartInstance) {
+    ctx._chartInstance.destroy();
+  }
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'Group average',
+        data: groupAvgValues,
+        backgroundColor: 'rgba(96, 165, 250, 0.6)',
+        borderColor: 'rgba(96, 165, 250, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      },
+      {
+        label: 'Overall average',
+        data: overallAvgValues,
+        backgroundColor: 'rgba(156, 163, 175, 0.6)',
+        borderColor: 'rgba(156, 163, 175, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }
+    ]
+  };
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: false }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Markers' }, ticks: { autoSkip: false } },
+      y: { beginAtZero: true, title: { display: true, text: 'Value' } }
+    }
+  };
+  const summaryChart = new Chart(ctx, { type: 'bar', data, options });
+  ctx._chartInstance = summaryChart;
+}
+
+// Draw a radar chart comparing the user values against group and overall averages
+function drawRadarChart({ labels, userValues, groupAvgValues, overallAvgValues }) {
+  const canvas = document.getElementById('radarChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (ctx && ctx._chartInstance) {
+    ctx._chartInstance.destroy();
+  }
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'You',
+        data: userValues,
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        borderWidth: 1,
+        pointBackgroundColor: 'rgba(16, 185, 129, 1)'
+      },
+      {
+        label: 'Group avg',
+        data: groupAvgValues,
+        backgroundColor: 'rgba(96, 165, 250, 0.2)',
+        borderColor: 'rgba(96, 165, 250, 1)',
+        borderWidth: 1,
+        pointBackgroundColor: 'rgba(96, 165, 250, 1)'
+      },
+      {
+        label: 'Overall avg',
+        data: overallAvgValues,
+        backgroundColor: 'rgba(156, 163, 175, 0.2)',
+        borderColor: 'rgba(156, 163, 175, 1)',
+        borderWidth: 1,
+        pointBackgroundColor: 'rgba(156, 163, 175, 1)'
+      }
+    ]
+  };
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    },
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: false }
+    }
+  };
+  const radarChart = new Chart(ctx, { type: 'radar', data, options });
+  ctx._chartInstance = radarChart;
 }
 
 // Confetti animation for celebratory scores
