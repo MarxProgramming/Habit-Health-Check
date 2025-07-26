@@ -19,6 +19,46 @@ let selectedRegion = 'uk';
 let chartInstance = null;
 let miniCharts = [];
 
+// Selected demographics
+let selectedAgeRange = '25-34';
+let selectedGender = 'other';
+
+const ageOptions = ['18-24', '25-34', '35-44', '45-54', '55+'];
+const genderOptions = ['female', 'male', 'other'];
+
+// Baseline adjustments by age group.  Each array corresponds to
+// ageOptions: 18-24, 25-34, 35-44, 45-54, 55+
+const ageBaselineMap = {
+  alcohol: [14, 12, 10, 9, 8],
+  nicotine: [8, 5, 3, 2, 1],
+  caffeine: [180, 210, 200, 180, 160],
+  sleep: [7, 7, 7, 7, 7],
+  strength_training: [12, 10, 8, 6, 5],
+  cardio: [20, 15, 10, 8, 6],
+  social_media: [180, 150, 120, 90, 60],
+  porn: [2, 1, 0.5, 0.3, 0.1],
+  fast_food: [3, 2, 1, 1, 0.5],
+  tooth_brushing: [2, 2, 2, 2, 2],
+  sugary_drinks: [4, 3, 2, 2, 1],
+  social_connections: [3, 3, 2, 2, 2],
+  fruit_veg: [3, 4, 4, 4, 4]
+};
+
+// Gender adjustments added to baseline values
+const genderAdjustments = {
+  male: { alcohol: 2, nicotine: 2, caffeine: 10, sleep: -0.5, strength_training: 2, cardio: 0, social_media: -20, porn: 1, fast_food: 0.5, sugary_drinks: 1, social_connections: -0.5, fruit_veg: -0.5 },
+  female: { alcohol: -2, nicotine: -2, caffeine: -10, sleep: 0.5, strength_training: -2, cardio: 0, social_media: 20, porn: -1, fast_food: -0.5, sugary_drinks: -1, social_connections: 0.5, fruit_veg: 0.5 },
+  other: {}
+};
+
+function getBaselineFor(markerId) {
+  const ageIndex = ageOptions.indexOf(selectedAgeRange);
+  let base = (ageBaselineMap[markerId] && ageIndex >= 0) ? ageBaselineMap[markerId][ageIndex] : (config.regions[selectedRegion]?.baselines[markerId] ?? markers.find(m => m.id === markerId).baseline);
+  const genderAdj = genderAdjustments[selectedGender] || {};
+  if (genderAdj[markerId] != null) base += genderAdj[markerId];
+  return Math.max(0, base);
+}
+
 // Predefined choice sets for each marker.  Choices make it easier to
 // answer the survey on touch devices.  Each entry contains a label
 // (displayed to the user) and a numeric value used for scoring.
@@ -92,6 +132,28 @@ const choiceSets = {
     { label: '2', value: 2 },
     { label: '3+', value: 3 }
   ]
+  ,
+  sugary_drinks: [
+    { label: 'None', value: 0 },
+    { label: '1–2', value: 1.5 },
+    { label: '3–5', value: 4 },
+    { label: '6–8', value: 7 },
+    { label: '9+', value: 9 }
+  ],
+  social_connections: [
+    { label: 'None', value: 0 },
+    { label: '1', value: 1 },
+    { label: '2–3', value: 2.5 },
+    { label: '4–5', value: 4.5 },
+    { label: '6+', value: 6 }
+  ],
+  fruit_veg: [
+    { label: '0', value: 0 },
+    { label: '1–2', value: 1.5 },
+    { label: '3–4', value: 3.5 },
+    { label: '5–6', value: 5.5 },
+    { label: '7+', value: 7 }
+  ]
 };
 
 // Notes for each marker when values fall into risk bands.  These strings
@@ -139,6 +201,19 @@ const notes = {
     mild: 'Brushing less than twice daily leads to plaque build‑up',
     high: 'Poor oral hygiene can cause gum disease and tooth decay'
   }
+  ,
+  sugary_drinks: {
+    mild: 'Too many sugary drinks can lead to weight gain and diabetes',
+    high: 'High intake of sugary drinks increases risk of heart and liver problems'
+  },
+  social_connections: {
+    mild: 'Low social contact may increase risks of illness and early death',
+    high: 'Chronic loneliness significantly raises risk of mortality'
+  },
+  fruit_veg: {
+    mild: 'Eating less than five portions reduces nutrient intake',
+    high: 'Very low fruit and veg intake can increase risk of disease'
+  }
 };
 
 const app = document.getElementById('app');
@@ -164,8 +239,40 @@ function renderLaunch() {
   const intro = document.createElement('p');
   intro.className = 'text-sm text-gray-700';
   intro.textContent = 'This quick check compares your everyday habits with trusted health guidelines and UK averages. Answer a few simple questions to see where you stand and how you can improve.';
+  // Age range select
+  const ageLabel = document.createElement('label');
+  ageLabel.className = 'block text-sm text-gray-700 mt-4';
+  ageLabel.textContent = 'Select your age range';
+  const ageSelect = document.createElement('select');
+  ageSelect.className = 'mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md';
+  ageOptions.forEach((age) => {
+    const opt = document.createElement('option');
+    opt.value = age;
+    opt.textContent = age;
+    if (age === selectedAgeRange) opt.selected = true;
+    ageSelect.appendChild(opt);
+  });
+  ageSelect.addEventListener('change', () => {
+    selectedAgeRange = ageSelect.value;
+  });
+  // Gender select
+  const genderLabel = document.createElement('label');
+  genderLabel.className = 'block text-sm text-gray-700 mt-4';
+  genderLabel.textContent = 'Select your gender';
+  const genderSelect = document.createElement('select');
+  genderSelect.className = 'mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md';
+  genderOptions.forEach((gender) => {
+    const opt = document.createElement('option');
+    opt.value = gender;
+    opt.textContent = gender.charAt(0).toUpperCase() + gender.slice(1);
+    if (gender === selectedGender) opt.selected = true;
+    genderSelect.appendChild(opt);
+  });
+  genderSelect.addEventListener('change', () => {
+    selectedGender = genderSelect.value;
+  });
   const btn = document.createElement('button');
-  btn.className = 'button-primary';
+  btn.className = 'button-primary mt-6';
   btn.textContent = 'Begin';
   btn.addEventListener('click', () => {
     answers = {};
@@ -174,6 +281,10 @@ function renderLaunch() {
   });
   container.appendChild(title);
   container.appendChild(intro);
+  container.appendChild(ageLabel);
+  container.appendChild(ageSelect);
+  container.appendChild(genderLabel);
+  container.appendChild(genderSelect);
   container.appendChild(btn);
   app.appendChild(container);
 }
@@ -317,11 +428,9 @@ function renderQuestion() {
 function computeResults() {
   const deductions = [];
   let score = 100;
-  const baseline = config.regions[selectedRegion]?.baselines || {};
   const userValues = [];
-  const avgValues = [];
-  const mildValues = [];
-  const highValues = [];
+  const groupAvgValues = [];
+  const overallAvgValues = [];
   const labels = [];
 
   markers.forEach((marker) => {
@@ -329,9 +438,13 @@ function computeResults() {
     const bands = marker.bands;
     const penalties = marker.penalties;
     let penalty = 0;
-    let bandName = '';
+    let bandName = 'good';
     if (!marker.invert) {
-      if (value > bands.high) {
+      // Consumption markers: lower is better
+      if (value > bands.high * 1.5) {
+        penalty = penalties.high + 2;
+        bandName = 'very bad';
+      } else if (value > bands.high) {
         penalty = penalties.high;
         bandName = 'high';
       } else if (value > bands.moderate) {
@@ -340,10 +453,15 @@ function computeResults() {
       } else if (value > bands.mild) {
         penalty = penalties.mild;
         bandName = 'mild';
+      } else if (value <= bands.mild * 0.5) {
+        bandName = 'excellent';
       }
     } else {
-      // Invert logic: penalise when value is below threshold
-      if (value < bands.high) {
+      // Beneficial markers: higher is better
+      if (value < bands.high * 0.5) {
+        penalty = penalties.high + 2;
+        bandName = 'very bad';
+      } else if (value < bands.high) {
         penalty = penalties.high;
         bandName = 'high';
       } else if (value < bands.moderate) {
@@ -352,6 +470,8 @@ function computeResults() {
       } else if (value < bands.mild) {
         penalty = penalties.mild;
         bandName = 'mild';
+      } else if (value >= bands.mild * 1.5) {
+        bandName = 'excellent';
       }
     }
     if (penalty > 0) {
@@ -368,9 +488,12 @@ function computeResults() {
     }
     // Chart data
     userValues.push(value);
-    avgValues.push(baseline[marker.id] ?? marker.baseline);
-    mildValues.push(marker.bands.mild);
-    highValues.push(marker.bands.high);
+    // Group baseline (age and gender adjusted)
+    const groupBaseline = getBaselineFor(marker.id);
+    groupAvgValues.push(groupBaseline);
+    // Overall baseline (default region baseline)
+    const overallBaseline = config.regions[selectedRegion]?.baselines[marker.id] ?? marker.baseline;
+    overallAvgValues.push(overallBaseline);
     // shorten label for charts (first word or first segment before space/hyphen)
     const shortLabel = marker.label.split(/\s|\u2011|-/)[0];
     labels.push(shortLabel);
@@ -379,8 +502,85 @@ function computeResults() {
   return {
     score,
     deductions,
-    chartData: { labels, userValues, avgValues, mildValues, highValues }
+    chartData: { labels, userValues, groupAvgValues, overallAvgValues }
   };
+}
+
+// Compute the expected score for someone with average behaviour in the selected age and gender group.
+function computeGroupScore() {
+  let total = 100;
+  markers.forEach((marker) => {
+    const value = getBaselineFor(marker.id);
+    const bands = marker.bands;
+    const penalties = marker.penalties;
+    let bandName = 'good';
+    let penalty = 0;
+    if (!marker.invert) {
+      if (value > bands.high * 1.5) {
+        penalty = penalties.high + 2;
+        bandName = 'very bad';
+      } else if (value > bands.high) {
+        penalty = penalties.high;
+        bandName = 'high';
+      } else if (value > bands.moderate) {
+        penalty = penalties.moderate;
+        bandName = 'moderate';
+      } else if (value > bands.mild) {
+        penalty = penalties.mild;
+        bandName = 'mild';
+      }
+    } else {
+      if (value < bands.high * 0.5) {
+        penalty = penalties.high + 2;
+        bandName = 'very bad';
+      } else if (value < bands.high) {
+        penalty = penalties.high;
+        bandName = 'high';
+      } else if (value < bands.moderate) {
+        penalty = penalties.moderate;
+        bandName = 'moderate';
+      } else if (value < bands.mild) {
+        penalty = penalties.mild;
+        bandName = 'mild';
+      }
+    }
+    total -= penalty;
+  });
+  return total < 0 ? 0 : Math.round(total);
+}
+
+// Compute score for overall baseline (general UK average) regardless of age or gender
+function computeOverallScore() {
+  let total = 100;
+  markers.forEach((marker) => {
+    const overallBaseline = config.regions[selectedRegion]?.baselines[marker.id] ?? marker.baseline;
+    const bands = marker.bands;
+    const penalties = marker.penalties;
+    let penalty = 0;
+    if (!marker.invert) {
+      if (overallBaseline > bands.high * 1.5) {
+        penalty = penalties.high + 2;
+      } else if (overallBaseline > bands.high) {
+        penalty = penalties.high;
+      } else if (overallBaseline > bands.moderate) {
+        penalty = penalties.moderate;
+      } else if (overallBaseline > bands.mild) {
+        penalty = penalties.mild;
+      }
+    } else {
+      if (overallBaseline < bands.high * 0.5) {
+        penalty = penalties.high + 2;
+      } else if (overallBaseline < bands.high) {
+        penalty = penalties.high;
+      } else if (overallBaseline < bands.moderate) {
+        penalty = penalties.moderate;
+      } else if (overallBaseline < bands.mild) {
+        penalty = penalties.mild;
+      }
+    }
+    total -= penalty;
+  });
+  return total < 0 ? 0 : Math.round(total);
 }
 
 // Determine colour for headline score
@@ -404,13 +604,41 @@ function renderResults() {
   if (colorName === 'amber') bgColor = 'bg-yellow-500';
   if (colorName === 'red') bgColor = 'bg-red-500';
   const scoreCircle = document.createElement('div');
-  scoreCircle.className = `mx-auto flex items-center justify-center w-24 h-24 rounded-full text-white text-2xl font-bold ${bgColor}`;
+  scoreCircle.className = `rating-circle mx-auto flex items-center justify-center w-24 h-24 rounded-full text-white text-2xl font-bold ${bgColor}`;
   scoreCircle.textContent = `${score.toFixed(0)}/100`;
   container.appendChild(scoreCircle);
   const scoreLabel = document.createElement('p');
   scoreLabel.className = 'text-center text-sm text-gray-700 mt-2';
   scoreLabel.textContent = 'Overall habit score';
   container.appendChild(scoreLabel);
+
+  // Show average group score
+  const avgScoreValue = computeGroupScore();
+  const groupP = document.createElement('p');
+  groupP.className = 'text-center text-sm text-gray-500';
+  groupP.textContent = `Average ${selectedGender} aged ${selectedAgeRange} would score about ${avgScoreValue}/100`;
+  container.appendChild(groupP);
+
+  // Overall average score circle and group average score circle
+  const overallScoreValue = computeOverallScore();
+  const circlesWrapper = document.createElement('div');
+  circlesWrapper.className = 'flex justify-center gap-4 mt-2';
+  function createSmallCircle(value, label) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex flex-col items-center';
+    const circle = document.createElement('div');
+    circle.className = 'rating-circle flex items-center justify-center w-16 h-16 rounded-full text-white text-lg font-bold bg-gray-400';
+    circle.textContent = `${value}`;
+    const lbl = document.createElement('span');
+    lbl.className = 'mt-1 text-xs text-gray-600';
+    lbl.textContent = label;
+    wrapper.appendChild(circle);
+    wrapper.appendChild(lbl);
+    return wrapper;
+  }
+  circlesWrapper.appendChild(createSmallCircle(avgScoreValue, 'Group avg'));
+  circlesWrapper.appendChild(createSmallCircle(overallScoreValue, 'Overall avg'));
+  container.appendChild(circlesWrapper);
 
   // Trigger confetti for high scores
   if (score >= 90) {
@@ -486,9 +714,11 @@ function renderResults() {
     tr.className = 'border-b border-gray-100';
     // Determine icon based on band
     let icon = '';
-    if (bandName === 'good') icon = '✅';
+    if (bandName === 'excellent') icon = '🌟';
+    else if (bandName === 'good') icon = '✅';
     else if (bandName === 'mild' || bandName === 'moderate') icon = '⚠️';
     else if (bandName === 'high') icon = '❌';
+    else if (bandName === 'very bad') icon = '💀';
     tr.innerHTML = `<td class="py-1 pr-2">${m.label}</td>
       <td class="py-1 pr-2">${val}</td>
       <td class="py-1 pr-2">${avg}</td>
@@ -593,6 +823,12 @@ function renderResults() {
   });
   controls.appendChild(darkBtn);
 
+  // Scoring details button
+  const scoringBtn = document.createElement('button');
+  scoringBtn.className = 'button-secondary text-sm';
+  scoringBtn.textContent = 'How scoring works';
+  controls.appendChild(scoringBtn);
+
   container.appendChild(controls);
 
   // Sources section hidden by default
@@ -609,11 +845,31 @@ function renderResults() {
     <p>[7] Addictive Behaviours porn study 2025</p>
     <p>[8] Public Health England fast-food briefing</p>
     <p>[9] NHS dental brushing advice</p>
+    <p>[10] NHS five-a-day fruit and veg guidance</p>
+    <p>[11] CDC facts on sugar-sweetened beverages</p>
+    <p>[12] Harvard social connection and longevity article</p>
   `;
   container.appendChild(sourcesSection);
   // Toggle sources display
   sourcesBtn.addEventListener('click', () => {
     sourcesSection.classList.toggle('hidden');
+  });
+
+  // Scoring details section
+  const scoringSection = document.createElement('div');
+  scoringSection.id = 'scoring-section';
+  scoringSection.className = 'hidden mt-4 text-sm text-gray-700 space-y-1';
+  scoringSection.innerHTML = `
+    <p>The score starts at 100 points. For each marker, points are subtracted when your value falls outside the recommended band.</p>
+    <p><strong>Mild:</strong> -2 points. Your habit is slightly off the recommended range.</p>
+    <p><strong>Moderate:</strong> -5 points. Your habit is moderately unhealthy or insufficient.</p>
+    <p><strong>High:</strong> -8 points. Your habit is well outside the healthy range.</p>
+    <p><strong>Very bad:</strong> -10 points. Your habit is far beyond harmful thresholds and merits urgent attention.</p>
+    <p><strong>Excellent:</strong> 0 points deducted. Your habit is notably better than the guideline.</p>
+  `;
+  container.appendChild(scoringSection);
+  scoringBtn.addEventListener('click', () => {
+    scoringSection.classList.toggle('hidden');
   });
   app.appendChild(container);
 
@@ -697,7 +953,7 @@ function drawChart({ labels, userValues, avgValues, mildValues, highValues }) {
 // visualises your value, the regional average and the mild/high
 // thresholds to make differences obvious.  This function clears
 // existing mini charts before creating new ones.
-function drawMiniCharts({ labels, userValues, avgValues, mildValues, highValues }) {
+function drawMiniCharts({ labels, userValues, groupAvgValues, overallAvgValues }) {
   // Destroy previous mini charts
   if (miniCharts.length > 0) {
     miniCharts.forEach((ch) => ch.destroy());
@@ -708,19 +964,19 @@ function drawMiniCharts({ labels, userValues, avgValues, mildValues, highValues 
   container.innerHTML = '';
   markers.forEach((marker, idx) => {
     const wrapper = document.createElement('div');
-    wrapper.className = 'h-32';
+    wrapper.className = 'h-32 p-2 rounded-lg shadow-sm';
     const canvas = document.createElement('canvas');
     canvas.id = 'mini_' + marker.id;
     wrapper.appendChild(canvas);
     container.appendChild(wrapper);
     const data = {
-      labels: ['You', 'Average'],
+      labels: ['You', 'Your group', 'Overall avg'],
       datasets: [
         {
           label: marker.label,
-          data: [userValues[idx], avgValues[idx]],
-          backgroundColor: ['rgba(16, 185, 129, 0.6)', 'rgba(59, 130, 246, 0.6)'],
-          borderColor: ['rgba(16, 185, 129, 1)', 'rgba(59, 130, 246, 1)'],
+          data: [userValues[idx], groupAvgValues[idx], overallAvgValues[idx]],
+          backgroundColor: ['rgba(16, 185, 129, 0.6)', 'rgba(96, 165, 250, 0.6)', 'rgba(156, 163, 175, 0.6)'],
+          borderColor: ['rgba(16, 185, 129, 1)', 'rgba(96, 165, 250, 1)', 'rgba(156, 163, 175, 1)'],
           borderWidth: 1,
           borderRadius: 4
         }

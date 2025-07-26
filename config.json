@@ -109,6 +109,39 @@
       "invert": true,
       "citation": 9,
       "description": "Brush twice daily with fluoride toothpaste for healthy teeth and gums"
+    },
+    {
+      "id": "sugary_drinks",
+      "label": "Sugary drinks per week",
+      "unit": "drinks/week",
+      "baseline": 3,
+      "bands": { "mild": 3, "moderate": 6, "high": 10 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 11,
+      "description": "Frequently drinking sugar-sweetened beverages is associated with weight gain, diabetes and heart disease"
+    },
+    {
+      "id": "social_connections",
+      "label": "Times you see friends per week",
+      "unit": "times/week",
+      "baseline": 3,
+      "bands": { "mild": 3, "moderate": 2, "high": 1 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 12,
+      "description": "Regular social connection reduces health risks while loneliness increases mortality risk"
+    },
+    {
+      "id": "fruit_veg",
+      "label": "Fruit and veg portions per day",
+      "unit": "portions/day",
+      "baseline": 4,
+      "bands": { "mild": 5, "moderate": 3, "high": 2 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 10,
+      "description": "Everyone should eat at least five portions of fruit and vegetables every day"
     }
   ],
   "regions": {

@@ -24,7 +24,7 @@
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
       }
       .button-primary {
-        background: linear-gradient(to right, #38bdf8, #0ea5e9);
+        background: linear-gradient(to right, #14b8a6, #0d9488);
         color: #ffffff;
         border-radius: 0.5rem;
         padding: 0.5rem 1rem;
@@ -74,9 +74,15 @@
       .card {
         background-color: var(--card-bg, #ffffff);
         color: var(--text, #374151);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+      }
+      .dark .card {
+        background: rgba(31, 41, 55, 0.8);
+        backdrop-filter: blur(10px);
       }
       .dark .button-primary {
-        background: linear-gradient(to right, #6366f1, #4f46e5);
+        background: linear-gradient(to right, #6d28d9, #5b21b6);
       }
       .dark .button-secondary {
         background: #374151;
@@ -87,6 +93,15 @@
       @keyframes fall {
         0% { transform: translateY(0) rotate(0deg); opacity: 1; }
         100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+      }
+
+      .rating-circle {
+        transform: scale(0);
+        animation: popIn 0.4s ease-out forwards;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      }
+      @keyframes popIn {
+        to { transform: scale(1); }
       }
     </style>
   </head>
@@ -207,6 +222,39 @@
       "invert": true,
       "citation": 9,
       "description": "Brush twice daily with fluoride toothpaste for healthy teeth and gums"
+    },
+    {
+      "id": "sugary_drinks",
+      "label": "Sugary drinks per week",
+      "unit": "drinks/week",
+      "baseline": 3,
+      "bands": { "mild": 3, "moderate": 6, "high": 10 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": false,
+      "citation": 11,
+      "description": "Frequently drinking sugar-sweetened beverages is associated with weight gain, diabetes and heart disease"
+    },
+    {
+      "id": "social_connections",
+      "label": "Times you see friends per week",
+      "unit": "times/week",
+      "baseline": 3,
+      "bands": { "mild": 3, "moderate": 2, "high": 1 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 12,
+      "description": "Regular social connection reduces health risks while loneliness increases mortality risk"
+    },
+    {
+      "id": "fruit_veg",
+      "label": "Fruit and veg portions per day",
+      "unit": "portions/day",
+      "baseline": 4,
+      "bands": { "mild": 5, "moderate": 3, "high": 2 },
+      "penalties": { "mild": 2, "moderate": 5, "high": 8 },
+      "invert": true,
+      "citation": 10,
+      "description": "Everyone should eat at least five portions of fruit and vegetables every day"
     }
   ],
   "regions": {
